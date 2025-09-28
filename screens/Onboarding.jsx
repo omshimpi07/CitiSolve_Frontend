@@ -57,7 +57,7 @@ export default function Onboarding({ navigation }) {
           title={index < slides.length - 1 ? 'Next →' : 'Start App'}
           onPress={() => {
             if (index < slides.length - 1) setIndex(index + 1);
-            else navigation.replace('LoginSelection');
+            else navigation.replace('RoleSelection');
           }}
         />
       </View>

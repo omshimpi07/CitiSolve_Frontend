@@ -1,55 +1,62 @@
 // App.js
 import React from 'react';
-import { StatusBar } from 'react-native';
-import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
+import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-
 import { ReportProvider } from './context/ReportContext';
-import theme from './theme';
 
 // Screens
 import SplashScreen from './screens/SplashScreen';
 import Onboarding from './screens/Onboarding';
-import LoginSelection from './screens/LoginSelection';
-import UserAuth from './screens/UserAuth';
-import AdminAuth from './screens/AdminAuth';
+import RoleSelection from './screens/RoleSelection';
+
+import UserLogin from './screens/UserLogin';
+import UserRegister from './screens/UserRegister';
+import AdminLogin from './screens/AdminLogin';
+import AdminRegister from './screens/AdminRegister';
+import ContractorLogin from './screens/ContractorLogin';
+import ContractorRegister from './screens/ContractorRegister';
+
+// ✅ add the two missing imports
+import AssignWork from './screens/AssignWork';
+import ContractorDashboard from './screens/ContractorDashboard';
 
 // Drawers
 import UserDrawer from './navigation/UserDrawer';
 import AdminDrawer from './navigation/AdminDrawer';
+import ContractorDrawer from './navigation/ContractorDrawer';
 
 const Stack = createNativeStackNavigator();
-
-// Custom Navigation Theme (aligns with theme.jsx)
-const navTheme = {
-  ...DefaultTheme,
-  colors: {
-    ...DefaultTheme.colors,
-    background: theme.colors.background,
-  },
-};
 
 export default function App() {
   return (
     <ReportProvider>
-      <NavigationContainer theme={navTheme}>
-        <StatusBar barStyle="dark-content" backgroundColor={theme.colors.background} />
-        <Stack.Navigator
-          screenOptions={{ headerShown: false }}
-          initialRouteName="Splash"
-        >
-          {/* Splash & Onboarding */}
+      <NavigationContainer>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          {/* Initial screens */}
           <Stack.Screen name="Splash" component={SplashScreen} />
           <Stack.Screen name="Onboarding" component={Onboarding} />
-          <Stack.Screen name="LoginSelection" component={LoginSelection} />
+          <Stack.Screen name="RoleSelection" component={RoleSelection} />
 
-          {/* Logins */}
-          <Stack.Screen name="UserAuth" component={UserAuth} />
-          <Stack.Screen name="AdminAuth" component={AdminAuth} />
+          {/* User Authentication */}
+          <Stack.Screen name="UserLogin" component={UserLogin} />
+          <Stack.Screen name="UserRegister" component={UserRegister} />
 
-          {/* Main App */}
+          {/* Admin Authentication */}
+          <Stack.Screen name="AdminLogin" component={AdminLogin} />
+          <Stack.Screen name="AdminRegister" component={AdminRegister} />
+
+          {/* Contractor Authentication */}
+          <Stack.Screen name="ContractorLogin" component={ContractorLogin} />
+          <Stack.Screen name="ContractorRegister" component={ContractorRegister} />
+
+          {/* Main features */}
+          <Stack.Screen name="Assign Work" component={AssignWork} />
+          <Stack.Screen name="ContractorDashboard" component={ContractorDashboard} />
+
+          {/* Drawers */}
           <Stack.Screen name="UserDrawer" component={UserDrawer} />
           <Stack.Screen name="AdminDrawer" component={AdminDrawer} />
+          <Stack.Screen name="ContractorDrawer" component={ContractorDrawer} />
         </Stack.Navigator>
       </NavigationContainer>
     </ReportProvider>

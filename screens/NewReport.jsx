@@ -1,187 +1,183 @@
 // screens/NewReport.jsx
 import React, { useState, useEffect } from 'react';
-import {
-  ScrollView,
-  View,
-  Text,
-  TextInput,
-  Image,
-  StyleSheet,
-  TouchableOpacity,
-  Platform,
-} from 'react-native';
+import { View, Text, TextInput, StyleSheet, Image, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import CustomButton from '../components/CustomButton';
+import * as Location from 'expo-location';
 import { useReports } from '../context/ReportContext';
+import CustomButton from '../components/CustomButton';
 
-const CATEGORIES = [
+const COMPLAINT_TYPES = [
   'Garbage Dump',
-  'Garbage Vehicle Not Arrived',
-  'Garbage Burning in Open Space',
+  'Street Lamp Damage',
+  'Burning Garbage',
   'Sweeping Not Done',
   'Sewage Overflow',
-  'Potholes or Road Holes',
-  'Public Toilet Issues',
-  'Open Manholes or Drains',
-  'Debris / Construction Material',
+  'Potholes',
+  'Open Drains',
+  'Public Toilet Issue',
+  'Debris / Construction',
   'Dead Animals',
+];
+
+const WASTE_TYPES = [
+  { label: 'Green (Organic)', value: 'Green' },
+  { label: 'Blue (Plastic/Recyclable)', value: 'Blue' },
+  { label: 'Red (Hazardous)', value: 'Red' },
+  { label: 'Metal', value: 'Metal' },
+  { label: 'Mixed Waste', value: 'Mixed' },
 ];
 
 export default function NewReport({ navigation, route }) {
   const { addReport } = useReports();
-  const routeCategory = route?.params?.category ?? '';
-  const [title, setTitle] = useState(routeCategory || '');
-  const [description, setDescription] = useState('');
-  const [image, setImage] = useState(null);
 
+  // Pre-fill title if passed from FAB
+  const prefillTitle = route?.params?.title || '';
+
+  const [title, setTitle] = useState(prefillTitle);
+  const [description, setDescription] = useState('');
+  const [selectedComplaint, setSelectedComplaint] = useState(prefillTitle || '');
+  const [segregationType, setSegregationType] = useState('');
+  const [imageUri, setImageUri] = useState(null);
+  const [coords, setCoords] = useState(null);
+
+  // Ask for location permission on mount
   useEffect(() => {
-    if (routeCategory) setTitle(routeCategory);
-  }, [routeCategory]);
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const location = await Location.getCurrentPositionAsync({});
+        setCoords(`${location.coords.latitude},${location.coords.longitude}`);
+      }
+    })();
+  }, []);
 
   const pickImage = async () => {
-    const res = await ImagePicker.launchImageLibraryAsync({
+    let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      quality: 0.9,
+      quality: 0.8,
     });
-    if (!res.canceled) setImage(res.assets[0].uri);
+    if (!result.canceled) {
+      setImageUri(result.assets[0].uri);
+    }
   };
 
   const takePhoto = async () => {
-    if (Platform.OS === 'web') {
-      alert('Camera not supported on web.');
+    let cameraPerm = await ImagePicker.requestCameraPermissionsAsync();
+    if (cameraPerm.status !== 'granted') {
+      Alert.alert('Permission needed', 'Please grant camera permission to take photos.');
       return;
     }
-    const perm = await ImagePicker.requestCameraPermissionsAsync();
-    if (perm.status !== 'granted') {
-      alert('Camera permission required!');
-      return;
-    }
-    const res = await ImagePicker.launchCameraAsync({
+    let result = await ImagePicker.launchCameraAsync({
       allowsEditing: true,
-      quality: 0.9,
+      quality: 0.8,
     });
-    if (!res.canceled) setImage(res.assets[0].uri);
+    if (!result.canceled) {
+      setImageUri(result.assets[0].uri);
+    }
   };
 
-  const submitReport = () => {
-    if (!title || !description) {
-      alert('Please fill title and description.');
+  const handleSubmit = () => {
+    if (!selectedComplaint) {
+      Alert.alert('Select Complaint', 'Please select a complaint type.');
       return;
     }
-    addReport({ title, description, image });
-    setTitle('');
-    setDescription('');
-    setImage(null);
-    navigation.navigate('Dashboard');
+
+    // build title automatically if empty
+    const finalTitle = title || selectedComplaint;
+
+    addReport({
+      title: finalTitle,
+      description,
+      image: imageUri,
+      coordinates: coords,
+      category: selectedComplaint,
+      segregationType: selectedComplaint === 'Garbage Dump' ? segregationType : '',
+      createdBy: 'John Doe', // later from AuthContext
+    });
+
+    Alert.alert('Success', 'Report submitted successfully!');
+    navigation.replace('UserDrawer'); // redirect to your dashboard route
   };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>New Report</Text>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 6,marginTop:20, marginBottom: 2 }} // tighter gap
-      >
-        {CATEGORIES.map((c, i) => {
-          const selected = c === title;
-          return (
-            <TouchableOpacity
-              key={i}
-              onPress={() => setTitle(c)}
-              style={[styles.categoryButton, selected && styles.categoryButtonSelected]}
-            >
-              <Text style={[styles.categoryText, selected && styles.categoryTextSelected]}>
-                {c}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
+      <Text style={styles.label}>Complaint Type</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
+        {COMPLAINT_TYPES.map((c) => (
+          <TouchableOpacity
+            key={c}
+            style={[styles.badge, selectedComplaint === c && styles.badgeActive]}
+            onPress={() => {
+              setSelectedComplaint(c);
+              setTitle(c); // auto fill title
+            }}
+          >
+            <Text style={[styles.badgeText, selectedComplaint === c && { color: '#fff' }]}>{c}</Text>
+          </TouchableOpacity>
+        ))}
       </ScrollView>
 
+      <Text style={styles.label}>Title</Text>
       <TextInput
         style={styles.input}
-        placeholder="Title"
-        placeholderTextColor="#94a3b8"
+        placeholder="Enter title"
         value={title}
         onChangeText={setTitle}
       />
 
+      <Text style={styles.label}>Description</Text>
       <TextInput
-        style={[styles.input, { height: 100 }]}
-        placeholder="Description"
-        multiline
+        style={[styles.input, { height: 80 }]}
+        placeholder="Describe the issue"
         value={description}
         onChangeText={setDescription}
+        multiline
       />
 
-      {image && <Image source={{ uri: image }} style={styles.imagePreview} />}
+      {selectedComplaint === 'Garbage Dump' && (
+        <>
+          <Text style={styles.label}>Waste Segregation Type</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
+            {WASTE_TYPES.map((w) => (
+              <TouchableOpacity
+                key={w.value}
+                style={[styles.badge, segregationType === w.value && styles.badgeActive]}
+                onPress={() => setSegregationType(w.value)}
+              >
+                <Text style={[styles.badgeText, segregationType === w.value && { color: '#fff' }]}>{w.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </>
+      )}
 
-      <CustomButton title="Pick Image from Gallery" onPress={pickImage} color="#0ea5e9" />
-      <CustomButton title="Take Photo" onPress={takePhoto} color="#6366f1" />
-      <CustomButton title="Submit Report" onPress={submitReport} color="#22c55e" />
+      <Text style={styles.label}>Photo</Text>
+      <View style={styles.row}>
+        <CustomButton title="Gallery" color="#0ea5e9" onPress={pickImage} />
+        <CustomButton title="Camera" color="#10b981" onPress={takePhoto} />
+      </View>
+      {imageUri && <Image source={{ uri: imageUri }} style={styles.image} />}
+
+      <Text style={styles.label}>Location</Text>
+      <Text style={styles.coords}>{coords || 'Fetching coordinates...'}</Text>
+
+      <CustomButton title="Submit Report" color="#6366f1" onPress={handleSubmit} />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    paddingHorizontal: 18,
-    paddingTop: 28,
-    paddingBottom: 40,
-    backgroundColor: '#f1f5f9',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    marginBottom: 4, // reduced from 8
-    textAlign: 'center',
-    color: '#0f172a',
-  },
-  categoryButton: {
-    height: 45, // slightly smaller
-    paddingHorizontal: 10,
-    backgroundColor: '#e2e8f0',
-    borderRadius: 14,
-    marginRight: 6,
-    justifyContent: 'center',
-  },
-  categoryButtonSelected: {
-    backgroundColor: '#0ea5e9',
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  categoryText: {
-    color: '#334155',
-    fontSize: 11,
-    fontWeight: '500',
-  },
-  categoryTextSelected: {
-    color: '#fff',
-    fontWeight: '700',
-  },
-  input: {
-    width: '100%',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    marginBottom: 10, // slightly tighter
-    fontSize: 15,
-    color: '#0f172a',
-  },
-  imagePreview: {
-    width: '100%',
-    height: 180,
-    borderRadius: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
+  container: { padding: 16, backgroundColor: '#f1f5f9' },
+  title: { fontSize: 22, fontWeight: '700', textAlign: 'center', marginBottom: 12 },
+  label: { fontWeight: '600', marginTop: 8, marginBottom: 4 },
+  input: { backgroundColor: '#fff', padding: 10, borderRadius: 8, borderWidth: 1, borderColor: '#e2e8f0', marginBottom: 8 },
+  row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  image: { width: '100%', height: 200, borderRadius: 12, marginBottom: 8 },
+  coords: { fontSize: 12, color: '#475569', marginBottom: 12 },
+  badge: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20, backgroundColor: '#e2e8f0', marginRight: 6 },
+  badgeActive: { backgroundColor: '#6366f1' },
+  badgeText: { fontSize: 12, color: '#1e293b' },
 });

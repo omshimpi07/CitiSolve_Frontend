@@ -1,135 +1,133 @@
 // screens/AdminHome.jsx
 import React from 'react';
-import { ScrollView, Text, View, Image, StyleSheet } from 'react-native';
-import CustomButton from '../components/CustomButton';
+import { View, Text, StyleSheet, FlatList, Image, Alert } from 'react-native';
 import { useReports } from '../context/ReportContext';
+import CustomButton from '../components/CustomButton';
+import defaultProfile from '../assets/default_profile.png';
 
 export default function AdminHome({ navigation }) {
-  const { reports, updateStatus } = useReports();
-  const pendingReports = reports.filter((r) => r.status === 'Pending');
+  const { reports, acceptReport, verifyCompletion } = useReports();
+
+  const pendingReports = reports.filter(r => r.status === 'Pending');
+  const pendingVerification = reports.filter(r => r.status === 'Pending Verification');
+
+  const handleVerify = (reportId) => {
+    Alert.alert(
+      'Verify Completion',
+      'Are you sure you want to verify and mark this report as Completed?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Verify',
+          onPress: () => {
+            verifyCompletion(reportId);
+          },
+        },
+      ]
+    );
+  };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <View style={styles.container}>
       <Text style={styles.title}>Admin Dashboard</Text>
-      <Text style={styles.subtitle}>Pending Reports:</Text>
 
-      {pendingReports.length === 0 && (
-        <Text style={{ textAlign: 'center', marginTop: 20 }}>
-          No pending reports right now.
-        </Text>
+      <View style={styles.topRow}>
+        <CustomButton title="View All Reports" color="#4e9bde" onPress={() => navigation.navigate('AdminReports')} />
+        <CustomButton title="Assign Work" color="#0ea5e9" onPress={() => navigation.navigate('Assign Work')} />
+      </View>
+
+      <Text style={styles.sectionTitle}>Pending Reports</Text>
+      {pendingReports.length === 0 ? (
+        <Text style={styles.emptyText}>No pending reports.</Text>
+      ) : (
+        <FlatList
+          data={pendingReports}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>{item.title}</Text>
+              <Text style={styles.small}>{item.category} • {new Date(item.createdAt).toLocaleString()}</Text>
+
+              {/* NEW: show segregationType and coordinates */}
+              <Text style={styles.small}>Waste Type: {item.segregationType || 'N/A'}</Text>
+              <Text style={styles.small}>Coordinates: {item.coordinates || 'N/A'}</Text>
+
+              <Text style={{ marginVertical: 8 }}>{item.description}</Text>
+
+              <View style={styles.row}>
+                <CustomButton
+                  title="Accept"
+                  color="#0ea5e9"
+                  onPress={() => {
+                    acceptReport(item.id);
+                    navigation.navigate('Assign Work'); // go to assign screen
+                  }}
+                />
+                <CustomButton
+                  title="View Details"
+                  color="#6366f1"
+                  onPress={() => navigation.navigate('AdminReports', { reportId: item.id })}
+                />
+              </View>
+            </View>
+          )}
+          contentContainerStyle={{ paddingBottom: 12 }}
+        />
       )}
 
-      {pendingReports.map((item, index) => {
-        const globalIndex = reports.indexOf(item);
-        return (
-          <View key={item.id || index} style={styles.reportCard}>
-            <Text style={{ fontWeight: 'bold', fontSize: 16 }}>{item.title}</Text>
-            <Text>{item.description}</Text>
-            {item.image && (
-              <Image
-                source={{ uri: item.image }}
-                style={{
-                  width: 100,
-                  height: 80,
-                  borderRadius: 8,
-                  marginTop: 5,
-                }}
-              />
-            )}
-            <Text style={{ marginTop: 5 }}>Status: {item.status}</Text>
-            <View style={styles.buttonRow}>
-              <CustomButton
-                title="✅Accept"
-                color="#22c55e"
-                onPress={() => updateStatus(globalIndex, 'Accepted')}
-              />
-              <CustomButton
-                title="❌Decline"
-                color="#ef4444"
-                onPress={() => updateStatus(globalIndex, 'Declined')}
-              />
+      <Text style={[styles.sectionTitle, { marginTop: 18 }]}>Pending Verification</Text>
+      {pendingVerification.length === 0 ? (
+        <Text style={styles.emptyText}>No reports pending verification.</Text>
+      ) : (
+        <FlatList
+          data={pendingVerification}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>{item.title}</Text>
+              <Text style={styles.small}>{item.category} • {item.contractor || 'Unassigned'}</Text>
+
+              {/* NEW: show segregationType and coordinates */}
+              <Text style={styles.small}>Waste Type: {item.segregationType || 'N/A'}</Text>
+              <Text style={styles.small}>Coordinates: {item.coordinates || 'N/A'}</Text>
+
+              <Text style={{ marginVertical: 6 }}>{item.description}</Text>
+
+              <Text style={{ fontWeight: '700', marginBottom: 6 }}>Completion Proof</Text>
+              {item.completionPhoto ? (
+                <Image
+                  source={{ uri: item.completionPhoto }}
+                  style={styles.completionImage}
+                  resizeMode="cover"
+                  defaultSource={defaultProfile}
+                />
+              ) : (
+                <Image source={defaultProfile} style={styles.completionImage} />
+              )}
+
+              <View style={styles.row}>
+                <CustomButton title="Verify & Complete" color="#10b981" onPress={() => handleVerify(item.id)} />
+                <CustomButton title="View History" color="#4e9bde" onPress={() => navigation.navigate('AdminReports', { reportId: item.id })} />
+              </View>
             </View>
-          </View>
-        );
-      })}
-    </ScrollView>
+          )}
+          contentContainerStyle={{ paddingBottom: 60 }}
+        />
+      )}
+
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingTop: 36,
-    paddingBottom: 40,
-    backgroundColor: '#f8fafc',
-  },
-  title: {
-    fontSize: 24,
-    marginBottom: 10,
-    fontWeight: '700',
-    textAlign: 'center',
-    color: '#0f172a',
-  },
-  subtitle: {
-    fontSize: 16,
-    marginBottom: 18,
-    textAlign: 'center',
-    color: '#475569',
-    fontWeight: '500',
-  },
-  emptyText: {
-    textAlign: 'center',
-    marginTop: 30,
-    fontSize: 15,
-    color: '#64748b',
-  },
-  reportCard: {
-    backgroundColor: '#fff',
-    padding: 16,
-    marginVertical: 8,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  reportTitle: {
-    fontWeight: '700',
-    fontSize: 16,
-    color: '#1e293b',
-    marginBottom: 4,
-  },
-  reportDescription: {
-    fontSize: 14,
-    color: '#475569',
-    marginBottom: 6,
-  },
-  thumbnail: {
-    width: 90,
-    height: 70,
-    borderRadius: 8,
-    marginLeft: 10,
-  },
-  statusText: {
-    marginTop: 6,
-    fontSize: 13,
-    color: '#334155',
-  },
-  statusPending: {
-    fontWeight: '600',
-    color: '#f59e0b',
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 10,
-  },
+  container: { flex: 1, padding: 16, backgroundColor: '#f1f5f9' },
+  title: { fontSize: 24, fontWeight: '700', textAlign: 'center', marginBottom: 12 },
+  topRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', marginTop: 8, marginBottom: 8 },
+  emptyText: { textAlign: 'center', marginTop: 8, color: '#64748b' },
+  card: { backgroundColor: '#fff', padding: 12, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: '#e2e8f0' },
+  cardTitle: { fontSize: 16, fontWeight: '700' },
+  small: { fontSize: 12, color: '#475569', marginTop: 4 },
+  row: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
+  completionImage: { width: '100%', height: 180, borderRadius: 10, marginBottom: 8 },
 });

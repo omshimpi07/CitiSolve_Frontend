@@ -1,126 +1,51 @@
 // screens/MyReports.jsx
 import React from 'react';
-import { ScrollView, Text, View, Image, StyleSheet } from 'react-native';
-import CustomButton from '../components/CustomButton';
+import { View, Text, FlatList, StyleSheet, Image } from 'react-native';
 import { useReports } from '../context/ReportContext';
+import CustomButton from '../components/CustomButton';
+import defaultProfile from '../assets/default_profile.png';
 
-export default function MyReports({ navigation }) {
-  const { reports, upvoteReport } = useReports();
+export default function MyReports() {
+  const { reports, submitCompletion } = useReports();
+  const currentUser = 'John Doe'; // replace with actual current user logic
+  const myReports = reports.filter(r => r.createdBy === currentUser);
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>📑 My Reports</Text>
-
-      {reports.length === 0 ? (
-        <Text style={styles.emptyText}>No reports yet.</Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>My Reports</Text>
+      {myReports.length === 0 ? (
+        <Text style={styles.emptyText}>You have not submitted any reports.</Text>
       ) : (
-        reports.map((item, i) => (
-          <View key={item.id || i} style={styles.reportCard}>
-            <View style={styles.row}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.reportTitle}>{item.title}</Text>
-                <Text style={styles.reportDescription}>{item.description}</Text>
+        <FlatList
+          data={myReports}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <View style={styles.card}>
+              <View style={{ flexDirection: 'row' }}>
+                <Image source={item.image ? { uri: item.image } : defaultProfile} style={styles.thumbnail} />
+                <View style={{ flex: 1, marginLeft: 10 }}>
+                  <Text style={styles.cardTitle}>{item.title}</Text>
+                  <Text style={styles.small}>{item.category} • {new Date(item.createdAt).toLocaleString()}</Text>
+                  <Text style={styles.cardDescription}>{item.description}</Text>
+                  <Text style={styles.small}>Status: {item.status}</Text>
+                  {item.completionPhoto && <Text style={styles.small}>Completion proof uploaded</Text>}
+                </View>
               </View>
-
-              {item.image && (
-                <Image
-                  source={{ uri: item.image }}
-                  style={styles.thumbnail}
-                />
-              )}
             </View>
-
-            <View style={styles.metaRow}>
-              <Text style={styles.metaText}>
-                📌 Status: <Text style={styles.status}>{item.status}</Text>
-              </Text>
-              <Text style={styles.metaText}>👍 {item.upvotes}</Text>
-            </View>
-
-            <View style={styles.buttonWrapper}>
-              <CustomButton
-                title="⬆ Upvote"
-                color="#f59e0b"
-                onPress={() => upvoteReport(i)}
-              />
-            </View>
-          </View>
-        ))
+          )}
+        />
       )}
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingTop: 36,
-    paddingBottom: 40,
-    backgroundColor: '#f8fafc',
-  },
-  title: {
-    fontSize: 24,
-    marginBottom: 20,
-    fontWeight: '700',
-    textAlign: 'center',
-    color: '#0f172a',
-  },
-  emptyText: {
-    textAlign: 'center',
-    color: '#64748b',
-    marginTop: 40,
-    fontSize: 16,
-  },
-  reportCard: {
-    backgroundColor: '#fff',
-    padding: 16,
-    marginVertical: 10,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  reportTitle: {
-    fontWeight: '700',
-    fontSize: 16,
-    color: '#1e293b',
-    marginBottom: 4,
-  },
-  reportDescription: {
-    fontSize: 14,
-    color: '#475569',
-    marginBottom: 6,
-  },
-  thumbnail: {
-    width: 90,
-    height: 70,
-    borderRadius: 8,
-    marginLeft: 10,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 6,
-    marginBottom: 10,
-  },
-  metaText: {
-    fontSize: 13,
-    color: '#334155',
-  },
-  status: {
-    fontWeight: '600',
-    color: '#0ea5e9',
-  },
-  buttonWrapper: {
-    marginTop: 6,
-  },
+  container: { flex: 1, padding: 16, backgroundColor: '#f1f5f9' },
+  title: { fontSize: 24, fontWeight: '700', textAlign: 'center', marginBottom: 16 },
+  emptyText: { textAlign: 'center', marginTop: 40, color: '#64748b' },
+  card: { backgroundColor: '#fff', padding: 14, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: '#e2e8f0' },
+  cardTitle: { fontSize: 16, fontWeight: '700', marginBottom: 6 },
+  cardDescription: { fontSize: 14, color: '#475569', marginBottom: 6 },
+  thumbnail: { width: 80, height: 80, borderRadius: 8 },
+  small: { fontSize: 12, color: '#475569' }
 });

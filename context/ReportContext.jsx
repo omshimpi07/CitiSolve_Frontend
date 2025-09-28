@@ -8,66 +8,86 @@ export function ReportProvider({ children }) {
 
   const makeId = () => Math.random().toString(36).slice(2, 9);
 
-  const addReport = (report) => {
+  const addReport = ({
+    title,
+    description,
+    image = null,
+    coordinates = null,
+    category = 'Mixed',
+    segregationType = 'Mixed',
+    createdBy = 'John Doe'
+  }) => {
     const item = {
       id: makeId(),
-      title: report.title || 'Untitled',
-      description: report.description || '',
-      image: report.image || null,
-      status: report.status || 'Pending',
-      history: report.history || ['Pending'],
-      upvotes: typeof report.upvotes === 'number' ? report.upvotes : 0,
-      coworker: report.coworker || null,
+      title: title || 'Untitled',
+      description: description || '',
+      image,
+      coordinates,
+      category,
+      segregationType,
+      status: 'Pending', // Pending → Accepted → Assigned → In Progress → Pending Verification → Completed
+      history: ['Pending'],
+      upvotes: [],
+      contractor: null,
+      assignedContractorType: null,
+      completionPhoto: null,
+      disposalCenter: null,
+      comments: [],
+      createdBy,
       createdAt: Date.now(),
     };
-    setReports((prev) => [item, ...prev]);
+    setReports(prev => [item, ...prev]);
   };
 
-  const updateStatus = (index, newStatus) => {
-    setReports((prev) =>
-      prev.map((r, i) => {
-        if (i !== index) return r;
-        const history = Array.isArray(r.history) ? [...r.history, newStatus] : [newStatus];
-        return { ...r, status: newStatus, history };
-      })
+  const acceptReport = (reportId) => {
+    setReports(prev =>
+      prev.map(r => r.id === reportId ? { ...r, status: 'Accepted', history: [...r.history, 'Accepted'] } : r)
     );
   };
 
-  const assignWork = (index, coworkerName) => {
-    setReports((prev) =>
-      prev.map((r, i) => {
-        if (i !== index) return r;
-        const history = Array.isArray(r.history) ? [...r.history, `Assigned to ${coworkerName}`] : [`Assigned to ${coworkerName}`];
-        return { ...r, status: 'Assigned', coworker: coworkerName, history };
-      })
+  const assignWork = (reportId, contractorName, contractorType = 'Waste') => {
+    setReports(prev =>
+      prev.map(r => r.id === reportId
+        ? { ...r, status: 'Assigned', contractor: contractorName, assignedContractorType: contractorType, history: [...r.history, `Assigned to ${contractorType}`] }
+        : r)
     );
   };
 
-  const undoStatus = (index) => {
-    setReports((prev) =>
-      prev.map((r, i) => {
-        if (i !== index) return r;
-        const history = Array.isArray(r.history) ? [...r.history] : [];
-        if (history.length > 1) {
-          history.pop();
-          const status = history[history.length - 1] || 'Pending';
-          const coworker = status === 'Assigned' ? r.coworker : null;
-          return { ...r, status, history, coworker: coworker || null };
-        }
-        return { ...r, status: 'Pending', history: ['Pending'], coworker: null };
-      })
+  const acceptWork = (reportId, contractorName) => {
+    setReports(prev =>
+      prev.map(r => r.id === reportId
+        ? { ...r, status: 'In Progress', contractor: contractorName, history: [...r.history, 'In Progress'] }
+        : r)
     );
   };
 
-  const upvoteReport = (index) => {
-    setReports((prev) =>
-      prev.map((r, i) => (i === index ? { ...r, upvotes: (r.upvotes || 0) + 1 } : r))
+  const submitCompletion = (reportId, completionPhotoUrl) => {
+    setReports(prev =>
+      prev.map(r => r.id === reportId
+        ? { ...r, status: 'Pending Verification', completionPhoto: completionPhotoUrl, history: [...r.history, 'Pending Verification'] }
+        : r)
+    );
+  };
+
+  const verifyCompletion = (reportId) => {
+    setReports(prev =>
+      prev.map(r => r.id === reportId
+        ? { ...r, status: 'Completed', history: [...r.history, 'Completed'] }
+        : r)
     );
   };
 
   return (
     <ReportContext.Provider
-      value={{ reports, addReport, updateStatus, assignWork, undoStatus, upvoteReport }}
+      value={{
+        reports,
+        addReport,
+        acceptReport,
+        assignWork,
+        acceptWork,
+        submitCompletion,
+        verifyCompletion,
+      }}
     >
       {children}
     </ReportContext.Provider>

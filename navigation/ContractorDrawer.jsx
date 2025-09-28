@@ -1,8 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import { createDrawerNavigator, DrawerContentScrollView, DrawerItemList } from '@react-navigation/drawer';
-import UserDashboard from '../screens/UserDashboard';
-import NewReport from '../screens/NewReport';
+import ContractorDashboard from '../screens/ContractorDashboard';
 import MyReports from '../screens/MyReports';
 import AllReports from '../screens/AllReports';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,14 +9,14 @@ import defaultProfile from '../assets/default_profile.png';
 
 const Drawer = createDrawerNavigator();
 
-export default function UserDrawer({ navigation }) {
-  const currentUser = { name: 'John Doe', email: 'john@example.com' };
+function ContractorCustomDrawer(props) {
+  const currentUser = { name: 'Contractor', email: 'contractor@example.com' };
 
-  const CustomDrawerContent = (props) => (
+  return (
     <DrawerContentScrollView {...props}>
       <View style={styles.profileSection}>
         <Image source={defaultProfile} style={styles.avatar} />
-        <Text style={styles.username}>{currentUser?.name || currentUser?.email}</Text>
+        <Text style={styles.username}>{currentUser?.name}</Text>
         <Text style={styles.email}>{currentUser?.email}</Text>
       </View>
 
@@ -26,20 +25,19 @@ export default function UserDrawer({ navigation }) {
       </View>
 
       <View style={styles.logoutContainer}>
-        <TouchableOpacity
-          style={styles.logoutButton}
-          onPress={() => navigation.reset({ index: 0, routes: [{ name: 'RoleSelection' }] })}
-        >
+        <TouchableOpacity style={styles.logoutButton} onPress={() => props.navigation.reset({ index: 0, routes: [{ name: 'RoleSelection' }] })}>
           <Ionicons name="log-out-outline" size={20} color="#fff" />
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
       </View>
     </DrawerContentScrollView>
   );
+}
 
+export default function ContractorDrawer() {
   return (
     <Drawer.Navigator
-      drawerContent={(props) => <CustomDrawerContent {...props} />}
+      drawerContent={(props) => <ContractorCustomDrawer {...props} />}
       screenOptions={{
         headerShown: true,
         drawerActiveBackgroundColor: '#4e9bde',
@@ -47,8 +45,7 @@ export default function UserDrawer({ navigation }) {
         drawerInactiveTintColor: '#333',
       }}
     >
-      <Drawer.Screen name="Dashboard" component={UserDashboard} options={{ drawerIcon: ({ color }) => <Ionicons name="home-outline" size={22} color={color} /> }} />
-      <Drawer.Screen name="New Report" component={NewReport} options={{ drawerIcon: ({ color }) => <Ionicons name="add-circle-outline" size={22} color={color} /> }} />
+      <Drawer.Screen name="Dashboard" component={ContractorDashboard} options={{ drawerIcon: ({ color }) => <Ionicons name="home-outline" size={22} color={color} /> }} />
       <Drawer.Screen name="My Reports" component={MyReports} options={{ drawerIcon: ({ color }) => <Ionicons name="document-text-outline" size={22} color={color} /> }} />
       <Drawer.Screen name="All Reports" component={AllReports} options={{ drawerIcon: ({ color }) => <Ionicons name="list-outline" size={22} color={color} /> }} />
     </Drawer.Navigator>
